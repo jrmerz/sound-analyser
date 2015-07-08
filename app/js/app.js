@@ -91,85 +91,104 @@ function draw() {
   //app.analyser.getByteTimeDomainData(dataArray);
 
   app.canvasCtx.clearRect(0, 0, app.width, app.height);
+  app.canvasCtx.fillStyle = 'black'
+  app.canvasCtx.fillRect(0, 0, app.width, app.height);
 
   app.canvasCtx.lineWidth = 2;
-  app.canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+  app.canvasCtx.strokeStyle = 'white';
 
 
-  var barWidth = (app.width / (app.max / 2));
+  var barWidth = (app.height / (app.max / 2));
   var barHeight;
-  var x = 0, v;
+  var y = app.height-barWidth, v;
+
+  var middle = app.width / 2;
+
 
   app.count++;
 
   for(var i = 0; i < app.max / 2; i++) {
-    barHeight = dataArray[i] * 2.5;
+    barHeight = dataArray[i] * 1.5;
 
-    v = app.height - barHeight;
+    //v = (app.width / 2) - barHeight;
 
     app.canvasCtx.fillStyle = 'rgb(0,' + (barHeight+100) + ',0)';
-    app.canvasCtx.fillRect(x, app.height-barHeight, barWidth, barHeight);
+    app.canvasCtx.fillRect(middle, y, barHeight, barWidth);
+    app.canvasCtx.fillRect(middle-barHeight, y, barHeight, barWidth);
 
-    app.average[i][0] += v;
+    //app.average[i][0] += v;
+    app.average[i][0] += barHeight;
     app.average[i][1] = app.average[i][0] / app.count;
 
-    x += barWidth + 1;
+    y -= barWidth + 1;
   }
 
-  app.canvasCtx.beginPath();
 
   // for best fit
   var xValues = [];
   var yValues = [];
 
-  x = 0;
+  y = app.height-barWidth;
+  app.canvasCtx.beginPath();
   for( var i = 0; i < app.average.length; i++ ) {
 
     if(i === 0) {
-      app.canvasCtx.moveTo(x, app.average[i][1]);
+      app.canvasCtx.moveTo(middle+app.average[i][1], y);
     } else {
-      app.canvasCtx.lineTo(x, app.average[i][1]);
+      app.canvasCtx.lineTo(middle+app.average[i][1], y);
     }
     xValues.push(i);
     //yValues.push(dataArray[i]);
     yValues.push(app.average[i][1]);
 
-    x += barWidth + 1;
+    y -= barWidth + 1;
   }
+  app.canvasCtx.stroke();
+
+  y = app.height-barWidth;
+  app.canvasCtx.beginPath();
+  for( var i = 0; i < app.average.length; i++ ) {
+    if(i === 0) {
+      app.canvasCtx.moveTo(middle-app.average[i][1], y);
+    } else {
+      app.canvasCtx.lineTo(middle-app.average[i][1], y);
+    }
+    y -= barWidth + 1;
+  }
+  app.canvasCtx.stroke();
+
+  app.canvasCtx.strokeStyle = 'red';
+  var points = findLineByLeastSquares(xValues, yValues);
+
+  app.canvasCtx.beginPath();
+  app.canvasCtx.moveTo(middle+points[1][1], 0);
+  app.canvasCtx.lineTo(middle+points[0][1], app.height);
   app.canvasCtx.stroke();
 
   app.canvasCtx.beginPath();
-  app.canvasCtx.strokeStyle = 'red';
-  var points = findLineByLeastSquares(xValues, yValues);
-  //var points = jmCalc(xValues, yValues);
-  /*for( var i = 0; i < points[0].length; i++ ) {
-    if(i === 0) {
-      app.canvasCtx.moveTo(points[1][i], points[0][i]);
-    } else {
-      app.canvasCtx.lineTo(points[1][i], points[0][i]);
-    }
-  }*/
-  app.canvasCtx.moveTo(0, points[0][1]);
-  app.canvasCtx.lineTo(app.width, points[1][1]);
+  app.canvasCtx.moveTo(middle-points[1][1], 0);
+  app.canvasCtx.lineTo(middle-points[0][1], app.height);
   app.canvasCtx.stroke();
+
+  drawLabels(middle, barWidth);
 }
 
-function jmCalc(xValues, yValues) {
-  var avgSlope = 0, avgY = yValues[0];
-  for( var i = 1; i < xValues.length; i++ ) {
-    avgSlope += (yValues[i] - yValues[i-1]) / (xValues[i] - xValues[i-1]);
-    avgY += yValues[i];
+function drawLabels(middle, barWidth) {
+  for( var i = 1; i < app.max; i += 15) {
+    var hz = (app.analyser.context.sampleRate / app.analyser.fftSize) * i;
+
+    if( hz > 1000 ) hz = (hz / 1000).toFixed(1)+' kHz';
+    else hz = Math.round(hz)+' Hz';
+
+    app.canvasCtx.font = '14px Arial';
+    app.canvasCtx.lineWidth = 2;
+
+    app.canvasCtx.strokeStyle = '#888';
+    app.canvasCtx.strokeText(hz, middle-20, app.height-(i*barWidth));
+    app.canvasCtx.fillStyle = 'white';
+    app.canvasCtx.fillText(hz, middle-20, app.height-(i*barWidth));
+
   }
-  avgSlope = avgSlope / xValues.length-1;
-  avgY = avgY / yValues.length;
-
-  var b = avgY - (avgSlope * (xValues.length / 2));
-
-  return [
-    [0, b],
-    [xValues[xValues.length-1], xValues[xValues.length-1] * avgSlope + b],
-  ]
-
 }
 
 // wire events
