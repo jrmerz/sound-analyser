@@ -10,6 +10,20 @@
 </head>
 
 <body style="margin:0; overflow: hidden">
+  <div style="position: absolute; top: 5px; left: 5px; color: white">
+    <div>
+      Samples:
+      <select>
+        <option selected value="128">128</option>
+        <option value="256">256</option>
+        <option value="512">512</option>
+        <option value="1024">1024</option>
+        <option value="2048">2048</option>
+      </select>
+    </div>
+    <div id="peeks"></div>
+  </div>
+
   <canvas width="400" height="400"></canvas>
 
   <button onclick="reset()" style="position: absolute; top: 5px; right: 5px">Reset</button>
