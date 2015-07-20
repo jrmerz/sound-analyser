@@ -12,13 +12,25 @@
 <body style="margin:0; overflow: hidden">
   <div style="position: absolute; top: 5px; left: 5px; color: white">
     <div>
-      Samples:
-      <select>
-        <option selected value="128">128</option>
+      FFT Size:
+      <select id="samples">
+        <option value="128">128</option>
         <option value="256">256</option>
         <option value="512">512</option>
         <option value="1024">1024</option>
-        <option value="2048">2048</option>
+        <option selected value="2048">2048</option>
+      </select>
+    </div>
+    <div>
+      Zoom:
+      <select id="zoom">
+        <option value="1" selected>1x</option>
+        <option value=".5">2x</option>
+        <option value=".25">4x</option>
+        <option value=".125">8x</option>
+        <option value=".0625">16x</option>
+        <option value=".03125">32x</option>
+        <option value=".015625">64x</option>
       </select>
     </div>
     <div id="peeks"></div>

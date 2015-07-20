@@ -2,20 +2,22 @@ var app = {
   count : 0,
   height: 400,
   width: 400,
-  samples : 128,
-  max : 128*.8,
+  samples : 2048,
+  maxRange : 1,
+  max : 2048,
   //samples : 2048,
   average : []
 };
 
+var step = 1.0594;
+
 var notes = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'];
 var noteHz = [16.35];
-for( var i = 1; i < 132; i++ ) noteHz.push(noteHz[i-1] * 1.0594);
+for( var i = 1; i < 132; i++ ) noteHz.push(noteHz[i-1] * step);
 for( var i = 0; i < 132; i++ ) {
   var mod = i % notes.length;
   noteHz[i] = [notes[mod], Math.round(noteHz[i])];
 }
-console.log(noteHz);
 
 function onload() {
   $(window).css('overflow', 'none')
@@ -34,8 +36,9 @@ function resize() {
 
   $('select')
     .on('change', function() {
-      app.samples = parseInt($(this).val());
-      app.max = app.samples * .8;
+      app.samples = parseInt($('#samples').val());
+      app.maxRange = parseFloat($('#zoom').val());
+      app.max = app.samples * app.maxRange;
       reset();
     });
 
@@ -113,6 +116,8 @@ function draw() {
 
 
   var barWidth = (app.height / (app.max / 2));
+  //var barWidth = app.height / 100;
+
   var barHeight;
   var y = app.height-barWidth, v;
 
@@ -120,21 +125,21 @@ function draw() {
 
 
   app.count++;
-
-  for(var i = 0; i < app.max / 2; i++) {
+  var l = app.max / 2;
+  for(var i = 0; i < l; i++) {
     barHeight = dataArray[i] * 1.5;
 
     //v = (app.width / 2) - barHeight;
 
     app.canvasCtx.fillStyle = 'rgb(0,' + (barHeight+100) + ',0)';
-    app.canvasCtx.fillRect(middle, y, barHeight, barWidth);
-    app.canvasCtx.fillRect(middle-barHeight, y, barHeight, barWidth);
+    app.canvasCtx.fillRect(middle, y, barHeight, getBarWidth(barWidth, i));
+    app.canvasCtx.fillRect(middle-barHeight, y, barHeight, getBarWidth(barWidth, i));
 
     //app.average[i][0] += v;
     app.average[i][0] += barHeight;
     app.average[i][1] = app.average[i][0] / app.count;
 
-    y -= barWidth + 1;
+    y -= getBarWidth(barWidth, i) + 1;
   }
 
 
@@ -155,7 +160,7 @@ function draw() {
     //yValues.push(dataArray[i]);
     yValues.push(app.average[i][1]);
 
-    y -= barWidth + 1;
+    y -= getBarWidth(barWidth, i) + 1;
   }
   app.canvasCtx.stroke();
 
@@ -168,7 +173,7 @@ function draw() {
     } else {
       app.canvasCtx.lineTo(middle-app.average[i][1], y);
     }
-    y -= barWidth + 1;
+    y -= getBarWidth(barWidth, i) + 1;
   }
   app.canvasCtx.stroke();
 
@@ -198,7 +203,7 @@ function draw() {
     if( peeks[i][0] > 1000 ) hz = (peeks[i][0] / 1000).toFixed(1)+' kHz';
     else hz = Math.round(peeks[i][0])+' Hz';
 
-    y = app.height-((barWidth+1)*(peeks[i][2]+1));
+    y = app.height-((getBarWidth(barWidth, i)+1)*(peeks[i][2]+1));
 
     app.canvasCtx.beginPath();
     app.canvasCtx.arc(middle-peeks[i][1], y, 5, 0, 2*Math.PI);
@@ -260,12 +265,49 @@ function drawLabels(middle, barWidth) {
     app.canvasCtx.lineWidth = 2;
 
     app.canvasCtx.strokeStyle = '#888';
-    app.canvasCtx.strokeText(hz, middle-20, app.height-(i*barWidth));
+    app.canvasCtx.strokeText(hz, middle-20, app.height-(i*getBarWidth(barWidth, i)));
     app.canvasCtx.fillStyle = 'white';
-    app.canvasCtx.fillText(hz, middle-20, app.height-(i*barWidth));
+    app.canvasCtx.fillText(hz, middle-20, app.height-(i*getBarWidth(barWidth, i)));
 
   }
+
+  drawOctaves(barWidth);
 }
+
+function drawOctaves(barWidth) {
+  var j = 0, hz = noteHz[0][1];
+  app.canvasCtx.strokeStyle = '#ccc';
+  var count = 0;
+
+  for( var i = 0; i < noteHz.length; i += 12 ) {
+
+    while( hz < noteHz[i][1] ) {
+      hz = (app.analyser.context.sampleRate / app.analyser.fftSize) * j;
+      j++;
+      count++;
+    }
+
+    var h = app.height-(j*getBarWidth(barWidth, i));
+
+    app.canvasCtx.beginPath();
+    app.canvasCtx.fillText('Octave: '+(i/12)+' ('+count+' samples/octave)', (i/12)*20, h-2);
+
+    app.canvasCtx.moveTo(0, h);
+    app.canvasCtx.lineTo(app.width, h);
+    app.canvasCtx.stroke();
+
+    count = 0;
+  }
+}
+
+// TODO
+function getBarWidth(barWidth, index) {
+  return barWidth;
+  /*var t = barWidth - ((index*step) / 5000 );
+  if( t < 1 ) return 1;
+  return t;*/
+}
+
 
 // wire events
 $(document).on('ready', onload);
